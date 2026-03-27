@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: fitness-db
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fitness}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  fitness-api:
+    build: .
+    container_name: fitness-api
+    restart: always
+    ports:
+      - "8000:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
