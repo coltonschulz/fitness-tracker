@@ -85,6 +85,49 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        /* ── Coach tab ─────────────────────────────────────────── */
+        /* ── Superset toggle ─────────────────────────────────── */
+        .superset-toggle {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 600; color: var(--text-muted);
+            cursor: pointer; margin-top: 6px; user-select: none;
+        }
+        .superset-toggle.active { color: var(--primary); }
+        .superset-toggle .toggle-track {
+            width: 34px; height: 18px; border-radius: 9px;
+            background: var(--border); position: relative;
+            transition: background 0.15s;
+        }
+        .superset-toggle.active .toggle-track { background: var(--primary); }
+        .superset-toggle .toggle-knob {
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--text); position: absolute;
+            top: 2px; left: 2px; transition: left 0.15s;
+        }
+        .superset-toggle.active .toggle-knob { left: 18px; }
+        #supersetRow {
+            margin-top: 10px; display: none;
+        }
+        #supersetRow.active { display: block; }
+        .superset-divider {
+            text-align: center; font-size: 11px; font-weight: 700;
+            color: var(--primary); letter-spacing: 2px;
+            margin: 8px 0 4px; text-transform: uppercase;
+        }
+        .superset-fields { margin-top: 8px; }
+
+        .coach-spinner {
+            width: 36px; height: 36px; margin: 0 auto;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .coach-exercise-name { font-weight: 600; font-size: 15px; }
+        .coach-exercise-detail { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+        .coach-exercise-note { color: var(--text-muted); font-size: 12px; font-style: italic; margin-top: 2px; }
+
         /* ── Cards ──────────────────────────────────────────────── */
         .card {
             background: var(--card);
@@ -313,6 +356,20 @@
             color: var(--text-muted); font-size: 14px;
         }
 
+        .recent-session {
+            padding: 12px 14px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px; margin-bottom: 8px;
+        }
+        .recent-session-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 6px;
+        }
+        .recent-session-date { font-size: 14px; font-weight: 600; }
+        .recent-session-meta { font-size: 12px; color: var(--text-muted); }
+        .recent-session-exercises { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
         .pr-filter {
             width: 100%; margin-bottom: 14px;
             padding: 12px 14px; font-size: 14px;
@@ -363,6 +420,7 @@
         <!-- Tab bar -->
         <nav class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('log')">🏋️ Log</button>
+            <button class="tab-btn"        onclick="switchTab('coach')">🤖 Coach</button>
             <button class="tab-btn"        onclick="switchTab('progress')">📈 Progress</button>
         </nav>
 
@@ -389,6 +447,12 @@
                         </div>
                     </div>
 
+                    <!-- Superset toggle -->
+                    <div class="superset-toggle" id="supersetToggle" onclick="toggleSuperset()">
+                        <div class="toggle-track"><div class="toggle-knob"></div></div>
+                        Superset
+                    </div>
+
                     <div class="input-row-3">
                         <div class="form-group">
                             <label class="field-label">Reps</label>
@@ -407,6 +471,38 @@
                     <div class="form-group">
                         <label class="field-label">Notes (Optional)</label>
                         <textarea id="notes" placeholder="Form cues, how it felt, etc..."></textarea>
+                    </div>
+
+                    <!-- Superset: second exercise -->
+                    <div id="supersetRow">
+                        <div class="superset-divider">+ superset with</div>
+                        <div class="form-group">
+                            <label class="field-label">Exercise B</label>
+                            <select id="supersetExercise">
+                                <option value="">Select exercise...</option>
+                            </select>
+                            <div id="supersetHint" class="exercise-hint"></div>
+                        </div>
+                        <div class="superset-fields">
+                            <div class="input-row-3">
+                                <div class="form-group">
+                                    <label class="field-label">Reps</label>
+                                    <input type="number" id="supersetReps" min="1" value="10">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label">Weight (lbs)</label>
+                                    <input type="number" id="supersetWeight" step="0.5" min="0" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label">RPE</label>
+                                    <input type="number" id="supersetRpe" min="1" max="10" step="0.5" placeholder="—">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="field-label">Notes (Optional)</label>
+                                <textarea id="supersetNotes" placeholder="Form cues for exercise B..."></textarea>
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn-primary" id="submitBtn">＋ Add Set</button>
@@ -452,8 +548,105 @@
 
         </div><!-- /tab-log -->
 
+        <!-- ═══════════════════════ COACH TAB ════════════════════ -->
+        <div id="tab-coach" class="tab-content">
+
+            <!-- Request card -->
+            <div class="card" id="coachRequestCard">
+                <div class="card-title">🤖 AI Coach</div>
+                <p style="color:var(--text-muted); font-size:14px; margin:0 0 16px">
+                    Get a personalized workout suggestion based on your training history.
+                </p>
+                <div class="form-group">
+                    <label class="field-label">Location</label>
+                    <select id="coachLocation">
+                        <option value="Planet Fitness">🏋️ Planet Fitness</option>
+                        <option value="Home">🏠 Home</option>
+                        <option value="Hotel gym">🏨 Hotel gym</option>
+                        <option value="Full gym (barbells available)">🔩 Full gym (barbells)</option>
+                        <option value="Other">📍 Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="field-label">Focus Area (optional)</label>
+                    <select id="coachFocusArea">
+                        <option value="">No preference</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="field-label">Notes (optional)</label>
+                    <textarea id="coachContext" placeholder="e.g. my hips are sore, avoid deadlifts today…" style="min-height:72px"></textarea>
+                </div>
+                <button class="btn-primary" id="coachBtn" onclick="requestCoaching()">
+                    What should I train today?
+                </button>
+                <div id="coachLimit" style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:8px"></div>
+            </div>
+
+            <!-- Loading card -->
+            <div class="card" id="coachLoading" style="display:none">
+                <div style="text-align:center; padding:24px 0">
+                    <div class="coach-spinner"></div>
+                    <p style="color:var(--text-muted); margin:16px 0 0; font-size:14px">
+                        Analyzing your training history...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Results card -->
+            <div class="card" id="coachResults" style="display:none">
+                <div class="card-title">💡 Suggested Workout</div>
+                <p id="coachSummary" style="color:var(--text-muted); font-size:14px; margin:0 0 16px; line-height:1.5"></p>
+                <ul id="coachExerciseList" class="session-list" style="margin-bottom:16px"></ul>
+                <!-- Revision input -->
+                <div style="border-top:1px solid var(--border); padding-top:14px; margin-bottom:14px">
+                    <label class="field-label">Revise this plan</label>
+                    <textarea id="coachReviseInput" placeholder="e.g. I don't have cables, swap for dumbbell alternatives…" style="min-height:60px; margin-bottom:8px"></textarea>
+                    <button class="btn-secondary" id="coachReviseBtn" onclick="reviseCoaching()" style="width:100%">
+                        🔄 Revise Plan
+                    </button>
+                </div>
+                <div class="btn-row">
+                    <button class="btn-success" onclick="loadCoachingIntoLogger()">
+                        🏋️ Load into Logger
+                    </button>
+                    <button class="btn-outline-danger" onclick="dismissCoachResults()">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error card -->
+            <div class="card" id="coachError" style="display:none">
+                <p id="coachErrorMsg" style="color:var(--primary); font-size:14px; margin:0 0 12px"></p>
+                <button class="btn-secondary" onclick="dismissCoachError()">OK</button>
+            </div>
+
+        </div><!-- /tab-coach -->
+
         <!-- ═══════════════════════ PROGRESS TAB ═════════════════ -->
         <div id="tab-progress" class="tab-content">
+
+            <!-- Volume by Muscle Group -->
+            <div class="card">
+                <div class="card-title">🎯 Volume by Muscle Group</div>
+                <p class="chart-subtitle">Sets logged in the last 90 days</p>
+                <div class="chart-container" style="height:240px">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+                <div id="volumeEmpty" class="chart-empty" style="display:none">
+                    No workout data in the last 90 days.
+                </div>
+            </div>
+
+            <!-- Recent Sessions -->
+            <div class="card">
+                <div class="card-title">📋 Recent Sessions</div>
+                <div id="recentSessionsList"></div>
+                <div id="recentSessionsEmpty" class="chart-empty" style="display:none">
+                    No workouts logged yet.
+                </div>
+            </div>
 
             <!-- Strength Progression -->
             <div class="card">
@@ -469,23 +662,11 @@
                 </div>
             </div>
 
-            <!-- Volume by Muscle Group -->
-            <div class="card">
-                <div class="card-title">🎯 Volume by Muscle Group</div>
-                <p class="chart-subtitle">Sets logged in the last 30 days</p>
-                <div class="chart-container" style="height:240px">
-                    <canvas id="volumeChart"></canvas>
-                </div>
-                <div id="volumeEmpty" class="chart-empty" style="display:none">
-                    No workout data in the last 30 days.
-                </div>
-            </div>
-
             <!-- PR Board -->
             <div class="card">
                 <div class="card-title">🏆 Personal Records</div>
                 <input type="search" class="pr-filter" id="prFilter"
-                       placeholder="Filter exercises…" oninput="filterPRs()">
+                       placeholder="Search exercises…" oninput="filterPRs()">
                 <div id="prList"></div>
             </div>
 
@@ -590,6 +771,34 @@
 
     let strengthChartObj = null;
     let volumeChartObj   = null;
+    let lastCoachResponse = null;
+
+    // ── LocalStorage persistence ─────────────────────────────────
+    function persistSession() {
+        try {
+            localStorage.setItem('ft_pendingSession', JSON.stringify(pendingSession));
+        } catch { /* quota exceeded — non-critical */ }
+    }
+    function persistCoachResponse() {
+        try {
+            if (lastCoachResponse) {
+                localStorage.setItem('ft_coachResponse', JSON.stringify(lastCoachResponse));
+            } else {
+                localStorage.removeItem('ft_coachResponse');
+            }
+        } catch { /* non-critical */ }
+    }
+    function restoreState() {
+        try {
+            const saved = localStorage.getItem('ft_pendingSession');
+            if (saved) pendingSession = JSON.parse(saved);
+            const coach = localStorage.getItem('ft_coachResponse');
+            if (coach) {
+                lastCoachResponse = JSON.parse(coach);
+                renderCoachResults(lastCoachResponse);
+            }
+        } catch { /* corrupted data — start fresh */ }
+    }
 
     // ── Init ──────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
@@ -603,7 +812,9 @@
         Chart.defaults.color       = '#7878a0';
         Chart.defaults.borderColor = '#2a2a42';
 
+        restoreState();
         await loadExercises();
+        renderSession();   // show restored pending sets
         loadPRs();  // non-blocking
 
         startTimer();
@@ -622,6 +833,10 @@
                 document.getElementById('newExerciseInput').classList.remove('show');
                 showExerciseHint(e.target.value);
             }
+        });
+
+        document.getElementById('supersetExercise').addEventListener('change', e => {
+            showSupersetHint(e.target.value);
         });
     });
 
@@ -708,9 +923,21 @@
         });
         mainHtml += '<option value="__new__">+ Add new exercise...</option>';
 
-        document.getElementById('exercise').innerHTML        = mainHtml;
-        document.getElementById('editSetExercise').innerHTML = editHtml;
-        document.getElementById('strengthSelect').innerHTML  = progressHtml;
+        // Superset dropdown mirrors main (without "add new")
+        let supersetHtml = '<option value="">Select exercise...</option>';
+        ordered.forEach(group => {
+            supersetHtml += `<optgroup label="${group}">`;
+            groups[group].forEach(name => {
+                const esc = escapeHtml(name);
+                supersetHtml += `<option value="${esc}">${esc}</option>`;
+            });
+            supersetHtml += '</optgroup>';
+        });
+
+        document.getElementById('exercise').innerHTML          = mainHtml;
+        document.getElementById('editSetExercise').innerHTML   = editHtml;
+        document.getElementById('strengthSelect').innerHTML    = progressHtml;
+        document.getElementById('supersetExercise').innerHTML  = supersetHtml;
     }
 
     // ── Exercise hint ─────────────────────────────────────────────────
@@ -819,6 +1046,34 @@
         document.getElementById('exerciseHint').style.display = 'none';
     }
 
+    // ── Superset ──────────────────────────────────────────────────────
+    let supersetActive = false;
+
+    function toggleSuperset() {
+        supersetActive = !supersetActive;
+        document.getElementById('supersetToggle').classList.toggle('active', supersetActive);
+        document.getElementById('supersetRow').classList.toggle('active', supersetActive);
+        document.getElementById('submitBtn').textContent = supersetActive ? '＋ Add Superset' : '＋ Add Set';
+    }
+
+    function showSupersetHint(name) {
+        const hint = document.getElementById('supersetHint');
+        if (!name) { hint.style.display = 'none'; return; }
+        const pr = prData.find(p => p.exercise_name === name);
+        if (pr && pr.recent_weight != null) {
+            document.getElementById('supersetWeight').value = pr.recent_weight;
+            document.getElementById('supersetReps').value   = pr.recent_reps;
+            const d = pr.last_logged
+                ? new Date(pr.last_logged + 'T12:00:00')
+                    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                : '';
+            hint.innerHTML = `<span class="hint-last">Last: <strong>${pr.recent_weight} lbs &times; ${pr.recent_reps}</strong>${d ? ` <span class="hint-date">(${d})</span>` : ''}</span>`;
+            hint.style.display = 'flex';
+        } else {
+            hint.style.display = 'none';
+        }
+    }
+
     // ── Session ───────────────────────────────────────────────────────
     function addSetToSession() {
         const exercise = document.getElementById('exercise').value;
@@ -834,9 +1089,31 @@
         }
 
         pendingSession.push({ exercise, reps, weight, rpe, notes });
+
+        // Superset: also add a set for exercise B
+        if (supersetActive) {
+            const ssExercise = document.getElementById('supersetExercise').value;
+            if (!ssExercise) {
+                showToast('Please select Exercise B for the superset', 'error');
+                pendingSession.pop();  // undo the first push
+                return;
+            }
+            const ssReps    = parseInt(document.getElementById('supersetReps').value);
+            const ssWeight  = parseFloat(document.getElementById('supersetWeight').value);
+            const ssRpeRaw  = document.getElementById('supersetRpe').value;
+            const ssNotes   = document.getElementById('supersetNotes').value.trim();
+            const ssRpe     = ssRpeRaw ? parseFloat(ssRpeRaw) : null;
+            pendingSession.push({ exercise: ssExercise, reps: ssReps, weight: ssWeight, rpe: ssRpe, notes: ssNotes });
+            document.getElementById('supersetNotes').value = '';
+        }
+
+        persistSession();
         document.getElementById('notes').value = '';
         renderSession();
-        showToast(`Set added (${pendingSession.length} total)`, 'success');
+        const msg = supersetActive
+            ? `Superset added (${pendingSession.length} total sets)`
+            : `Set added (${pendingSession.length} total)`;
+        showToast(msg, 'success');
     }
 
     function renderSession() {
@@ -877,6 +1154,7 @@
 
     function removeSet(idx) {
         pendingSession.splice(idx, 1);
+        persistSession();
         renderSession();
     }
 
@@ -884,6 +1162,7 @@
         if (pendingSession.length === 0) return;
         if (!confirm('Clear all sets from this session?')) return;
         pendingSession = [];
+        persistSession();
         renderSession();
     }
 
@@ -913,6 +1192,7 @@
             rpe:      rpeRaw ? parseFloat(rpeRaw) : null,
             notes:    document.getElementById('editSetNotes').value.trim(),
         };
+        persistSession();
         closeEditSetModal();
         renderSession();
     }
@@ -946,7 +1226,10 @@
         btn.textContent = 'Saving…';
 
         try {
-            const today = new Date().toISOString().split('T')[0];
+            // Use local date, not UTC — prevents evening sessions
+            // from being saved under the next day's date.
+            const now   = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
             const payload = {
                 workout_date: today,
                 program_name: null,
@@ -972,6 +1255,7 @@
             }
 
             pendingSession = [];
+            persistSession();
             renderSession();
             closeSaveModal();
             showToast('Workout saved! 💪', 'success');
@@ -1030,6 +1314,7 @@
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active',
                 (name === 'log'      && btn.textContent.includes('Log')) ||
+                (name === 'coach'    && btn.textContent.includes('Coach')) ||
                 (name === 'progress' && btn.textContent.includes('Progress'))
             );
         });
@@ -1038,8 +1323,10 @@
         });
         if (name === 'progress') {
             renderVolumeChart();
+            loadRecentSessions();
             if (document.getElementById('strengthSelect').value) loadStrengthChart();
         }
+        if (name === 'coach') populateCoachFocus();
     }
 
     // ── Strength chart ────────────────────────────────────────────────
@@ -1159,6 +1446,233 @@
                 },
             });
         } catch { /* silent */ }
+    }
+
+    // ── Recent sessions ────────────────────────────────────────────────
+    async function loadRecentSessions() {
+        const list  = document.getElementById('recentSessionsList');
+        const empty = document.getElementById('recentSessionsEmpty');
+        try {
+            const res = await fetch(`${API}/api/workouts?limit=3`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const workouts = data.workouts || [];
+
+            if (workouts.length === 0) {
+                list.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            // Fetch exercise details for each workout
+            const details = await Promise.all(
+                workouts.map(w => fetch(`${API}/api/workouts/${w.id}`).then(r => r.json()))
+            );
+
+            list.innerHTML = details.map(w => {
+                const d = new Date(w.workout_date + 'T12:00:00')
+                    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                // Group exercises by name with set counts
+                const counts = {};
+                (w.exercises || []).forEach(e => {
+                    counts[e.exercise_name] = (counts[e.exercise_name] || 0) + 1;
+                });
+                const summary = Object.entries(counts)
+                    .map(([name, n]) => `${escapeHtml(name)} (${n})`)
+                    .join(', ');
+                const totalSets = w.exercises ? w.exercises.length : 0;
+                return `<div class="recent-session">
+                    <div class="recent-session-header">
+                        <span class="recent-session-date">${d}</span>
+                        <span class="recent-session-meta">${totalSets} sets</span>
+                    </div>
+                    <div class="recent-session-exercises">${summary}</div>
+                </div>`;
+            }).join('');
+        } catch { /* silent */ }
+    }
+
+    // ── AI Coach ──────────────────────────────────────────────────────
+    function populateCoachFocus() {
+        const sel = document.getElementById('coachFocusArea');
+        if (sel.options.length > 1) return;
+        GROUP_ORDER.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.textContent = g;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function requestCoaching() {
+        const btn     = document.getElementById('coachBtn');
+        const loading = document.getElementById('coachLoading');
+        const results = document.getElementById('coachResults');
+        const errCard = document.getElementById('coachError');
+        const focus    = document.getElementById('coachFocusArea').value || null;
+        const location = document.getElementById('coachLocation').value || null;
+        const context  = document.getElementById('coachContext').value.trim() || null;
+
+        btn.disabled        = true;
+        btn.textContent     = 'Thinking...';
+        loading.style.display = 'block';
+        results.style.display = 'none';
+        errCard.style.display = 'none';
+
+        try {
+            const res = await fetch(`${API}/api/ai-coaching`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ focus_area: focus, location, context }),
+            });
+
+            if (res.status === 429) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || 'Daily limit reached. Try again tomorrow.');
+            }
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || 'AI coaching request failed.');
+            }
+
+            const data = await res.json();
+            lastCoachResponse = data;
+            persistCoachResponse();
+            renderCoachResults(data);
+        } catch (err) {
+            document.getElementById('coachErrorMsg').textContent = err.message;
+            errCard.style.display = 'block';
+        } finally {
+            loading.style.display = 'none';
+            btn.disabled    = false;
+            btn.textContent = 'What should I train today?';
+        }
+    }
+
+    function renderCoachResults(data) {
+        document.getElementById('coachSummary').textContent = data.summary;
+
+        // Show revision notes (AI's conversational response) if present
+        let notesEl = document.getElementById('coachRevisionNotes');
+        if (!notesEl) {
+            notesEl = document.createElement('div');
+            notesEl.id = 'coachRevisionNotes';
+            notesEl.style.cssText = 'background:var(--input-bg); border-left:3px solid var(--primary); padding:10px 14px; border-radius:6px; margin:0 0 16px; font-size:14px; line-height:1.5; color:var(--text);';
+            document.getElementById('coachSummary').after(notesEl);
+        }
+        if (data.revision_notes) {
+            notesEl.textContent = data.revision_notes;
+            notesEl.style.display = 'block';
+        } else {
+            notesEl.style.display = 'none';
+        }
+
+        const list = document.getElementById('coachExerciseList');
+        list.innerHTML = data.exercises.map(ex => {
+            const weight = ex.weight_lbs ? ` @ ${ex.weight_lbs} lbs` : ' (bodyweight)';
+            const note   = ex.notes ? `<div class="coach-exercise-note">${escapeHtml(ex.notes)}</div>` : '';
+            return `<li class="session-item" style="display:block">
+                <div class="coach-exercise-name">${escapeHtml(ex.name)}</div>
+                <div class="coach-exercise-detail">${ex.sets} sets &times; ${ex.reps} reps${weight}</div>
+                ${note}
+            </li>`;
+        }).join('');
+        document.getElementById('coachResults').style.display = 'block';
+    }
+
+    function loadCoachingIntoLogger() {
+        if (!lastCoachResponse || !lastCoachResponse.exercises) return;
+        lastCoachResponse.exercises.forEach(ex => {
+            for (let s = 0; s < ex.sets; s++) {
+                pendingSession.push({
+                    exercise: ex.name,
+                    reps:     ex.reps,
+                    weight:   ex.weight_lbs || 0,
+                    rpe:      null,
+                    notes:    ex.notes || '',
+                });
+            }
+        });
+        persistSession();
+        renderSession();
+        switchTab('log');
+        showToast(`Loaded ${lastCoachResponse.exercises.length} exercises into session`, 'success');
+    }
+
+    function dismissCoachResults() {
+        document.getElementById('coachResults').style.display = 'none';
+        lastCoachResponse = null;
+        persistCoachResponse();
+    }
+
+    function dismissCoachError() {
+        document.getElementById('coachError').style.display = 'none';
+    }
+
+    async function reviseCoaching() {
+        if (!lastCoachResponse) return;
+        const reviseInput = document.getElementById('coachReviseInput').value.trim();
+        if (!reviseInput) {
+            showToast('Add a note about what to change', 'error');
+            return;
+        }
+
+        const btn     = document.getElementById('coachReviseBtn');
+        const loading = document.getElementById('coachLoading');
+        const results = document.getElementById('coachResults');
+        const errCard = document.getElementById('coachError');
+
+        btn.disabled    = true;
+        btn.textContent = 'Revising…';
+        loading.style.display = 'block';
+        results.style.display = 'none';
+        errCard.style.display = 'none';
+
+        // Format previous suggestion as plain text for the prompt
+        const prevText = lastCoachResponse.exercises.map(ex => {
+            const weight = ex.weight_lbs ? ` @ ${ex.weight_lbs} lbs` : ' (bodyweight)';
+            const note   = ex.notes ? ` — ${ex.notes}` : '';
+            return `- ${ex.name}: ${ex.sets} sets × ${ex.reps} reps${weight}${note}`;
+        }).join('\n');
+
+        const focus    = document.getElementById('coachFocusArea').value || null;
+        const location = document.getElementById('coachLocation').value || null;
+
+        try {
+            const res = await fetch(`${API}/api/ai-coaching`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    focus_area:          focus,
+                    location,
+                    context:             reviseInput,
+                    previous_suggestion: prevText,
+                }),
+            });
+
+            if (res.status === 429) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || 'Daily limit reached. Try again tomorrow.');
+            }
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || 'Revision request failed.');
+            }
+
+            const data = await res.json();
+            lastCoachResponse = data;
+            persistCoachResponse();
+            document.getElementById('coachReviseInput').value = '';
+            renderCoachResults(data);
+        } catch (err) {
+            document.getElementById('coachErrorMsg').textContent = err.message;
+            errCard.style.display = 'block';
+        } finally {
+            loading.style.display = 'none';
+            btn.disabled    = false;
+            btn.textContent = '🔄 Revise Plan';
+        }
     }
 
     // ── Utils ─────────────────────────────────────────────────────────

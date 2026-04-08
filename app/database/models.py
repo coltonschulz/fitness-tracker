@@ -34,7 +34,6 @@ class Workout(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
-        UniqueConstraint("user_id", "workout_date", name="user_date_unique"),
         CheckConstraint(
             "difficulty_rating IS NULL OR (difficulty_rating >= 1 AND difficulty_rating <= 10)",
             name="workouts_difficulty_rating_check",
@@ -84,7 +83,7 @@ class AIReview(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    workout_id = Column(Integer, ForeignKey("workouts.id", ondelete="CASCADE"), nullable=False, index=True)
+    workout_id = Column(Integer, ForeignKey("workouts.id", ondelete="CASCADE"), nullable=True, index=True)
     status = Column(String(50), default="pending", index=True)
     prompt = Column(Text, nullable=False)
     response = Column(Text)

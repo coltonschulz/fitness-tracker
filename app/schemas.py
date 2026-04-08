@@ -71,28 +71,26 @@ class WorkoutsListResponse(BaseModel):
 
 
 class AICoachingRequest(BaseModel):
-    workout_id: int
-    focus_areas: Optional[List[str]] = None
+    focus_area: Optional[str] = None
+    location: Optional[str] = None          # e.g. "Planet Fitness", "Home", "Hotel"
     context: Optional[str] = None
+    previous_suggestion: Optional[str] = None  # populated on revision requests
 
 
-class AIReviewResponse(BaseModel):
-    id: int
-    workout_id: int
-    user_id: int
-    status: str
-    requested_at: datetime
-    completed_at: Optional[datetime] = None
-    response: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)
+class SuggestedExercise(BaseModel):
+    name: str
+    sets: int
+    reps: int
+    weight_lbs: Optional[float] = None
+    notes: Optional[str] = None
 
 
-class AICoachingAcceptedResponse(BaseModel):
+class AICoachingResponse(BaseModel):
     review_id: int
-    status: str
-    requested_at: datetime
-    message: str
+    summary: str
+    exercises: List[SuggestedExercise]
+    revision_notes: Optional[str] = None
+    tokens_used: Optional[int] = None
 
 
 class UserResponse(BaseModel):

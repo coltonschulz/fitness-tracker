@@ -39,6 +39,19 @@ async def lifespan(app: FastAPI):
         logger.info("Database connection verified")
         # Create new tables that may not exist in older deployments.
         ExerciseDefinition.__table__.create(bind=engine, checkfirst=True)
+        AIReview.__table__.create(bind=engine, checkfirst=True)
+        # Allow AI coaching requests without a linked workout.
+        # Allow multiple workouts per user per day.
+        with engine.connect() as migration_conn:
+            migration_conn.execute(text(
+                "ALTER TABLE ai_reviews "
+                "ALTER COLUMN workout_id DROP NOT NULL"
+            ))
+            migration_conn.execute(text(
+                "ALTER TABLE workouts "
+                "DROP CONSTRAINT IF EXISTS user_date_unique"
+            ))
+            migration_conn.commit()
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
         raise
@@ -47,7 +60,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Fitness Tracker API", version="2.0.0", lifespan=lifespan)
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000").split(",")
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:8000",
+).split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -386,7 +402,7 @@ async def get_volume_by_muscle(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Sets per muscle group for the current user over the last 30 days."""
+    """Sets per muscle group for the current user over the last 90 days."""
     user = get_current_user(request, db)
     rows = db.execute(
         text("""
@@ -397,7 +413,7 @@ async def get_volume_by_muscle(
             JOIN workouts w ON e.workout_id = w.id
             LEFT JOIN exercise_definitions ed ON e.exercise_name = ed.name
             WHERE e.user_id = :uid
-              AND w.workout_date >= CURRENT_DATE - INTERVAL '30 days'
+              AND w.workout_date >= CURRENT_DATE - INTERVAL '90 days'
             GROUP BY COALESCE(ed.muscle_group, 'Other')
             ORDER BY set_count DESC
         """),
