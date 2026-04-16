@@ -276,9 +276,19 @@
 
         /* ── Session list ───────────────────────────────────────── */
         .session-list  { list-style: none; padding: 0; margin: 0; }
+        .session-group { margin-bottom: 12px; }
+        .session-group:last-child { margin-bottom: 0; }
+        .session-group-header {
+            font-weight: 700; font-size: 13px;
+            text-transform: uppercase; letter-spacing: 0.6px;
+            color: var(--primary);
+            padding: 6px 0 4px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2px;
+        }
         .session-item  {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 0; border-bottom: 1px solid var(--border);
+            padding: 8px 0; border-bottom: 1px solid var(--border);
         }
         .session-item:last-child { border-bottom: none; }
         .session-info  { flex: 1; }
@@ -1136,20 +1146,37 @@
         empty.style.display = 'none';
         saveBtn.disabled    = false;
 
-        list.innerHTML = pendingSession.map((s, i) => `
-            <li class="session-item">
-                <div class="session-info">
-                    <div class="session-exercise">${escapeHtml(s.exercise)}</div>
-                    <div class="session-details">
-                        ${s.reps} reps &middot; ${s.weight} lbs${s.rpe ? ` &middot; RPE ${s.rpe}` : ''}
-                        ${s.notes ? `<br><em>${escapeHtml(s.notes)}</em>` : ''}
+        // Group sets by exercise, preserving first-appearance order.
+        const order  = [];
+        const groups = {};
+        pendingSession.forEach((s, i) => {
+            if (!groups[s.exercise]) {
+                groups[s.exercise] = [];
+                order.push(s.exercise);
+            }
+            groups[s.exercise].push({ s, i });
+        });
+
+        list.innerHTML = order.map(name => {
+            const setNum = (n) => `Set ${n}`;
+            const rows = groups[name].map(({ s, i }, gi) => `
+                <li class="session-item">
+                    <div class="session-info">
+                        <div class="session-details">
+                            ${setNum(gi + 1)} &middot; ${s.reps} reps &middot; ${s.weight} lbs${s.rpe ? ` &middot; RPE ${s.rpe}` : ''}
+                            ${s.notes ? `<br><em>${escapeHtml(s.notes)}</em>` : ''}
+                        </div>
                     </div>
-                </div>
-                <div class="session-actions">
-                    <button class="btn-small btn-secondary" onclick="openEditSetModal(${i})">Edit</button>
-                    <button class="btn-small btn-danger"    onclick="removeSet(${i})">✕</button>
-                </div>
-            </li>`).join('');
+                    <div class="session-actions">
+                        <button class="btn-small btn-secondary" onclick="openEditSetModal(${i})">Edit</button>
+                        <button class="btn-small btn-danger"    onclick="removeSet(${i})">✕</button>
+                    </div>
+                </li>`).join('');
+            return `<li class="session-group">
+                <div class="session-group-header">${escapeHtml(name)}</div>
+                <ul class="session-list">${rows}</ul>
+            </li>`;
+        }).join('');
     }
 
     function removeSet(idx) {
